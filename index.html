@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mi Audífono - Centro Auditivo Jesús</title>
+    
+    <!-- Configuración PWA y Móvil -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Mi Audífono">
+    <link rel="apple-touch-icon" href="https://centroauditivojesus.wordpress.com/wp-content/uploads/2017/10/cropped-corazc3b3n1.jpg?w=180">
+    
+    <!-- Librerías Externas -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { 
+            font-family: 'Inter', sans-serif; 
+            margin: 0; 
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            overscroll-behavior-y: contain;
+            background-color: #f8fafc;
+        }
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
+        @keyframes ring {
+          0% { transform: rotate(0); }
+          15% { transform: rotate(15deg); }
+          30% { transform: rotate(-15deg); }
+          45% { transform: rotate(8deg); }
+          60% { transform: rotate(-8deg); }
+          100% { transform: rotate(0); }
+        }
+        .animate-ring { animation: ring 2s ease-in-out infinite; }
+        .bar-transition { transition: height 0.5s ease-out; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        const LOGO_URL = "https://centroauditivojesus.wordpress.com/wp-content/uploads/2017/10/cropped-corazc3b3n1.jpg?w=96"; 
+        const CLINIC_PHONE = "955104419";
+
+        const Icons = {
+            Battery: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="10" x="2" y="7" rx="2" ry="2"/><line x1="22" x2="22" y1="11" y2="13"/></svg>,
+            Settings: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
+            Calendar: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>,
+            Plus: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>,
+            Chart: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg>,
+            Bell: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>,
+            Phone: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>,
+            Alert: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        };
+
+        const BATTERY_TYPES = {
+            10: { color: 'bg-yellow-400', text: 'text-yellow-900', name: 'Amarillo (10)', avgDays: 4 },
+            13: { color: 'bg-orange-500', text: 'text-orange-50', name: 'Naranja (13)', avgDays: 10 },
+            312: { color: 'bg-yellow-800', text: 'text-yellow-50', name: 'Marrón (312)', avgDays: 7 },
+            675: { color: 'bg-blue-600', text: 'text-blue-50', name: 'Azul (675)', avgDays: 15 },
+        };
+
+        function App() {
+            const [activeTab, setActiveTab] = useState('pilas');
+            const [batteryType, setBatteryType] = useState('312');
+            const [stock, setStock] = useState(0);
+            const [history, setHistory] = useState([]);
+            const [appointments, setAppointments] = useState([]);
+            const [reminderDays, setReminderDays] = useState(3);
+            const [alertThreshold, setAlertThreshold] = useState(6); 
+            const [showCustomStock, setShowCustomStock] = useState(false);
+            const [customInput, setCustomInput] = useState('');
+
+            useEffect(() => {
+                const saved = localStorage.getItem('audifono_pro_v4');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    setBatteryType(data.batteryType || '312');
+                    setStock(data.stock || 0);
+                    setHistory(data.history || []);
+                    setAppointments(data.appointments || []);
+                    setReminderDays(data.reminderDays || 3);
+                    setAlertThreshold(data.alertThreshold || 6);
+                }
+            }, []);
+
+            useEffect(() => {
+                localStorage.setItem('audifono_pro_v4', JSON.stringify({ batteryType, stock, history, appointments, reminderDays, alertThreshold }));
+            }, [batteryType, stock, history, appointments, reminderDays, alertThreshold]);
+
+            const chartData = useMemo(() => {
+                if (history.length < 2) return [];
+                const sorted = [...history].sort((a,b) => new Date(a.date) - new Date(b.date));
+                const results = [];
+                for (let i = 1; i < sorted.length; i++) {
+                    const start = new Date(sorted[i-1].date);
+                    const end = new Date(sorted[i].date);
+                    const diff = Math.round((end - start) / (1000 * 60 * 60 * 24));
+                    if (diff > 0 && diff < 30) {
+                        results.push({ label: end.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }), value: diff });
+                    }
+                }
+                return results.slice(-8);
+            }, [history]);
+
+            const averageLife = useMemo(() => {
+                if (chartData.length === 0) return BATTERY_TYPES[batteryType].avgDays;
+                return (chartData.reduce((acc, curr) => acc + curr.value, 0) / chartData.length).toFixed(1);
+            }, [chartData, batteryType]);
+
+            const isUpcoming = (dateStr) => {
+                const apptDate = new Date(dateStr);
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                const diffTime = apptDate - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                return diffDays >= 0 && diffDays <= reminderDays;
+            };
+
+            const theme = BATTERY_TYPES[batteryType];
+            const isLowStock = stock <= alertThreshold;
+
+            return (
+                <div className="flex flex-col min-h-screen max-w-md mx-auto bg-slate-50 shadow-2xl relative pb-24">
+                    
+                    {/* Header */}
+                    <header className={`${theme.color} ${theme.text} p-5 sticky top-0 z-50 shadow-md flex justify-between items-center transition-colors duration-500`}>
+                        <div className="flex items-center gap-3">
+                            <img src={LOGO_URL} className="w-10 h-10 rounded-xl bg-white p-1" alt="Logo" />
+                            <div>
+                                <h1 className="font-black uppercase text-[11px] tracking-tight leading-none">Centro Auditivo Jesús</h1>
+                                <p className="text-[9px] font-bold opacity-80 uppercase tracking-widest">Cuidamos tu audición</p>
+                            </div>
+                        </div>
+                        <div className="bg-black/10 px-3 py-1 rounded-full text-[10px] font-black uppercase">Pila {batteryType}</div>
+                    </header>
+
+                    <main className="p-5 space-y-6">
+                        {activeTab === 'pilas' && (
+                            <div className="space-y-6 animate-in fade-in">
+                                
+                                {/* Aviso de Stock Bajo */}
+                                {isLowStock && (
+                                    <div className="bg-red-50 border-2 border-red-100 p-5 rounded-[2rem] flex flex-col items-center gap-3 text-center animate-pulse">
+                                        <div className="text-red-500"><Icons.Alert /></div>
+                                        <div>
+                                            <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">¡Stock muy bajo!</p>
+                                            <p className="text-xs font-bold text-red-600">Le quedan {stock} pilas ({Math.floor(stock/6)} blísteres)</p>
+                                        </div>
+                                        <a href={`tel:${CLINIC_PHONE}`} className="bg-red-600 text-white px-6 py-2 rounded-full font-black uppercase text-[10px] flex items-center gap-2">
+                                            <Icons.Phone /> Contactar Clínica
+                                        </a>
+                                    </div>
+                                )}
+
+                                <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200 text-center">
+                                    <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Unidades en reserva</h2>
+                                    <div className="text-7xl font-black text-slate-900 tracking-tighter">{stock}</div>
+                                    <p className="text-[10px] font-bold text-slate-400 mt-1">({Math.floor(stock/6)} blísteres y {stock%6} sueltas)</p>
+                                </div>
+
+                                {/* CONFIGURACIÓN DE UMAL DE AVISO (Nueva Función) */}
+                                <div className="bg-white p-5 rounded-[2.5rem] border border-slate-200">
+                                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 px-2">Avisarme cuando me queden:</h3>
+                                    <div className="flex gap-2">
+                                        {[6, 12, 18].map(val => (
+                                            <button 
+                                                key={val}
+                                                onClick={() => setAlertThreshold(val)}
+                                                className={`flex-1 py-3 rounded-2xl font-black text-[10px] uppercase border-2 transition-all ${alertThreshold === val ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-slate-50 bg-slate-50 text-slate-400'}`}
+                                            >
+                                                {val/6} Blíster{val > 6 ? 'es' : ''}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <p className="text-[8px] text-center text-slate-400 mt-3 font-bold uppercase tracking-widest">Selecciona el número de blísteres de reserva</p>
+                                </div>
+
+                                <button onClick={() => { if(stock > 0) { setStock(s => s - 1); setHistory([...history, {date: new Date().toISOString()}]); } }} className={`w-full py-8 rounded-[2.5rem] ${theme.color} ${theme.text} font-black text-xl uppercase shadow-xl active:scale-95 border-b-8 border-black/10`}>Cambiar Pila hoy</button>
+
+                                <div className="space-y-3">
+                                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">Añadir compra</h3>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <button onClick={() => setStock(s => s + 6)} className="bg-white p-4 rounded-2xl border border-slate-200 font-black text-slate-700 uppercase text-[10px]">6 unidades (1 blíster)</button>
+                                        <button onClick={() => setStock(s => s + 12)} className="bg-white p-4 rounded-2xl border border-slate-200 font-black text-slate-700 uppercase text-[10px]">12 unidades (2 blísteres)</button>
+                                    </div>
+                                    {showCustomStock ? (
+                                        <div className="flex gap-2">
+                                            <input type="number" placeholder="Cantidad..." className="flex-1 p-4 rounded-2xl border-2 border-blue-100 font-bold" value={customInput} onChange={(e) => setCustomInput(e.target.value)} />
+                                            <button onClick={() => { const val = parseInt(customInput); if(val) setStock(s => s + val); setCustomInput(''); setShowCustomStock(false); }} className="bg-blue-600 text-white px-6 rounded-2xl font-black uppercase text-xs">OK</button>
+                                        </div>
+                                    ) : (
+                                        <button onClick={() => setShowCustomStock(true)} className="w-full bg-slate-100 p-4 rounded-2xl font-black text-slate-400 uppercase text-[10px] flex items-center justify-center gap-2"><Icons.Plus /> Cantidad personalizada...</button>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'citas' && (
+                             <div className="space-y-6 animate-in fade-in">
+                                <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm text-center">
+                                    <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Recordarme la cita con:</h2>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {[1, 3, 7].map(d => (
+                                            <button key={d} onClick={() => setReminderDays(d)} className={`py-3 rounded-xl font-black text-[10px] uppercase border-2 transition-all ${reminderDays === d ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-slate-50 bg-slate-50 text-slate-400'}`}>
+                                                {d} {d === 1 ? 'día' : 'días'}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200">
+                                    <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Añadir Próxima Cita</h2>
+                                    <input type="date" className="w-full p-4 rounded-xl bg-slate-50 border border-slate-100 font-bold mb-3 outline-none focus:ring-2 focus:ring-blue-500" onChange={(e) => { if(e.target.value) { setAppointments([...appointments, {date: e.target.value, id: Date.now()}].sort((a,b)=> new Date(a.date)-new Date(b.date))); } }} />
+                                </div>
+                                <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden">
+                                    <div className="p-5 border-b font-black text-[10px] text-slate-400 uppercase tracking-widest bg-slate-50/50">Citas Agendadas</div>
+                                    {appointments.length === 0 ? <div className="p-10 text-center text-slate-300 font-black text-[10px] uppercase">Sin citas</div> : 
+                                        appointments.map(appt => {
+                                            const upcoming = isUpcoming(appt.date);
+                                            return (
+                                                <div key={appt.id} className={`p-5 border-b flex justify-between items-center ${upcoming ? 'bg-orange-50' : 'bg-white'}`}>
+                                                    <div className="flex items-center gap-3">
+                                                        {upcoming && <Icons.Bell className="text-orange-500 animate-ring" />}
+                                                        <div className={`font-black uppercase text-sm ${upcoming ? 'text-orange-600' : 'text-slate-800'}`}>
+                                                            {new Date(appt.date).toLocaleDateString('es-ES', {day:'numeric', month:'long', year:'numeric'})}
+                                                            {upcoming && <span className="block text-[8px] font-black uppercase tracking-widest">¡Cita Próxima!</span>}
+                                                        </div>
+                                                    </div>
+                                                    <button onClick={() => setAppointments(appointments.filter(a => a.id !== appt.id))} className="text-red-300 font-bold p-2 text-[10px] uppercase">Borrar</button>
+                                                </div>
+                                            );
+                                        })
+                                    }
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'config' && (
+                            <div className="space-y-6 animate-in slide-in-from-bottom-4">
+                                <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm text-center">
+                                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Tipo de Pila</h3>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {Object.keys(BATTERY_TYPES).map(k => (
+                                            <button key={k} onClick={() => setBatteryType(k)} className={`p-4 rounded-2xl border-2 font-black text-xs transition-all flex flex-col items-center gap-2 ${batteryType === k ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-slate-50 text-slate-300'}`}>
+                                                <div className={`w-3 h-3 rounded-full ${BATTERY_TYPES[k].color}`}></div>
+                                                Pila {k}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <a href={`tel:${CLINIC_PHONE}`} className="block w-full py-5 bg-blue-600 text-center text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-lg shadow-blue-200 active:scale-95 transition-transform">Llamar a Centro Auditivo Jesús</a>
+                            </div>
+                        )}
+                    </main>
+
+                    {/* Menú Inferior */}
+                    <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/90 backdrop-blur-xl border-t border-slate-200 flex justify-around pb-safe z-50 rounded-t-[2.5rem] shadow-lg">
+                        <button onClick={() => setActiveTab('pilas')} className={`p-5 flex flex-col items-center flex-1 ${activeTab === 'pilas' ? 'text-blue-600' : 'text-slate-300'}`}>
+                            <Icons.Battery /><span className="text-[8px] font-black uppercase mt-1">Pilas</span>
+                        </button>
+                        <button onClick={() => setActiveTab('citas')} className={`p-5 flex flex-col items-center flex-1 ${activeTab === 'citas' ? 'text-blue-600' : 'text-slate-300'}`}>
+                            <Icons.Calendar /><span className="text-[8px] font-black uppercase mt-1">Citas</span>
+                        </button>
+                        <button onClick={() => setActiveTab('config')} className={`p-5 flex flex-col items-center flex-1 ${activeTab === 'config' ? 'text-blue-600' : 'text-slate-300'}`}>
+                            <Icons.Settings /><span className="text-[8px] font-black uppercase mt-1">Ajustes</span>
+                        </button>
+                    </nav>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
